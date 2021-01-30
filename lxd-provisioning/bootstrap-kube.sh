@@ -33,9 +33,31 @@ echo "[TASK 6] Install additional packages"
 apt install -qq -y net-tools >/dev/null 2>&1
 
 # Hack required to provision K8s v1.15+ in LXC containers
+cat <<EOF> /etc/systemd/system/rc-local.service 
+[Unit]
+ Description=/etc/rc.local Compatibility
+ ConditionPathExists=/etc/rc.local
+
+[Service]
+ Type=forking
+ ExecStart=/etc/rc.local start
+ TimeoutSec=0
+ StandardOutput=tty
+ RemainAfterExit=yes
+ SysVStartPriority=99
+
+[Install]
+ WantedBy=multi-user.target
+EOF
+
+cat <<EOF> /etc/rc.local
+#!/bin/bash
 mknod /dev/kmsg c 1 11
-echo 'mknod /dev/kmsg c 1 11' >> /etc/rc.local
+EOF
+
 chmod +x /etc/rc.local
+systemctl enable rc-local > /dev/null 2>&1
+systemctl start rc-local
 
 #######################################
 # To be executed only on master nodes #
